@@ -11,7 +11,7 @@ import {
 } from './task.model';
 
 /**
- * Thin HTTP wrapper. No state, no business rules — the component layer composes
+ * Thin HTTP wrapper. No state, no business rules. The component layer composes
  * these calls. Errors bubble up via RxJS and are handled by the global error
  * interceptor (see core/http/error.interceptor.ts).
  */

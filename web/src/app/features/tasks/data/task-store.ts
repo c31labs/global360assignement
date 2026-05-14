@@ -14,8 +14,8 @@ import {
 /**
  * Single source of truth for the task screen. Signals expose the synchronous read model
  * the components bind to; methods return observables so callers can chain UI actions
- * (e.g. closing a form on success). The store does not handle errors itself — the global
- * interceptor surfaces them — but it does clear the loading flag whichever way a request
+ * (e.g. closing a form on success). The store does not handle errors itself; the global
+ * interceptor surfaces them. It does clear the loading flag whichever way a request
  * resolves.
  */
 @Injectable({ providedIn: 'root' })

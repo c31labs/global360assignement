@@ -22,6 +22,6 @@ The same deck is exported as [`TaskFlow.pptx`](TaskFlow.pptx) in this folder. Us
 
 ## Contents
 
-1. **Solution architecture** — production diagram, technology choices with trade-offs, NFRs (security, scalability, reliability, observability), assumptions.
-2. **Delivery plan** — phased roadmap, team composition, top risks with mitigations, progress tracking.
-3. **Technical leadership** — ways of working, handling a PO pushing risky scope, day-one questions about the brief.
+1. **Solution architecture.** Production diagram, technology choices with trade-offs, NFRs (security, scalability, reliability, observability), assumptions.
+2. **Delivery plan.** Phased roadmap, team composition, top risks with mitigations, progress tracking.
+3. **Technical leadership.** Ways of working, handling a PO pushing risky scope, day one questions about the brief.

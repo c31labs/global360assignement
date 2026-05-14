@@ -30,7 +30,7 @@ PUT {{TaskFlow.Api_HostAddress}}/api/tasks/{{taskId}}
 Content-Type: application/json
 
 {
-  "title": "Plan Q3 campaign — refined scope",
+  "title": "Plan Q3 campaign refined scope",
   "description": "Pull in PR + paid",
   "priority": "High",
   "dueDate": "2026-07-15T00:00:00Z",
