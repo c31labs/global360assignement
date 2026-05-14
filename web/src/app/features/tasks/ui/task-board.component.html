@@ -1,0 +1,48 @@
+<section class="board">
+  <header class="board__header">
+    <div>
+      <h1>TaskFlow</h1>
+      <p class="board__subtitle">
+        {{ totals() }} task{{ totals() === 1 ? '' : 's' }} across the team
+      </p>
+    </div>
+    <button type="button" class="ghost" (click)="refresh()" aria-label="Refresh tasks">
+      Refresh
+    </button>
+  </header>
+
+  <app-task-form
+    [task]="editingTask()"
+    [submitting]="submitting()"
+    (save)="handleSave($event)"
+    (cancel)="cancelEdit()" />
+
+  @if (store.loading() && !store.loaded()) {
+    <p class="board__hint">Loading tasks...</p>
+  } @else if (totals() === 0) {
+    <p class="board__hint">No tasks yet. Add one above to get started.</p>
+  } @else {
+    <div class="board__columns">
+      @for (status of statuses; track status) {
+        <section class="column" [attr.data-status]="status.toLowerCase()">
+          <header class="column__header">
+            <h2>{{ statusLabel[status] }}</h2>
+            <span class="column__count">{{ grouped()[status].length }}</span>
+          </header>
+          <div class="column__list">
+            @for (task of grouped()[status]; track task.id) {
+              <app-task-card
+                [task]="task"
+                [busy]="isBusy(task.id)"
+                (statusChange)="changeStatus(task, $event)"
+                (edit)="startEdit($event)"
+                (remove)="remove($event)" />
+            } @empty {
+              <p class="column__empty">Nothing here.</p>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  }
+</section>

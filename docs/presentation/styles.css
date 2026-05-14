@@ -1,0 +1,261 @@
+.reveal {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 26px;
+  color: #1f2937;
+}
+
+.reveal h1,
+.reveal h2,
+.reveal h3 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+  text-transform: none;
+}
+
+.reveal h1 {
+  font-size: 2.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.reveal h2 {
+  font-size: 1.7rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0.4rem;
+  margin-bottom: 1.2rem;
+}
+
+.reveal h3 {
+  font-size: 1.1rem;
+  margin: 0 0 0.6rem;
+  color: #334155;
+  letter-spacing: 0.01em;
+}
+
+.reveal ul,
+.reveal ol {
+  margin-left: 1.1rem;
+  line-height: 1.45;
+}
+
+.reveal li + li {
+  margin-top: 0.35rem;
+}
+
+.reveal .footnote {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 1rem;
+  font-style: italic;
+}
+
+.reveal .title-slide {
+  color: #f8fafc;
+  text-align: left;
+  padding: 1rem 2rem;
+}
+
+.reveal .title-slide h1 {
+  color: #fbbf24;
+  font-size: 3rem;
+  margin: 0.4rem 0;
+}
+
+.reveal .title-slide .eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.reveal .title-slide .subtitle {
+  font-size: 1.2rem;
+  color: #cbd5e1;
+  margin: 0.4rem 0 1.4rem;
+}
+
+.reveal .title-slide .meta {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.reveal .title-slide .meta a {
+  color: #93c5fd;
+}
+
+.reveal .section-title {
+  color: #fbbf24;
+  font-size: 2.4rem;
+  margin: 0;
+  text-align: left;
+  padding-left: 1.5rem;
+}
+
+.reveal .big {
+  font-size: 1.1rem;
+}
+
+.reveal .two-col {
+  columns: 2;
+  column-gap: 2rem;
+  font-size: 0.95rem;
+}
+
+.reveal .grid-2x2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.6rem;
+  text-align: left;
+}
+
+.reveal .grid-2x2 > div {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.85rem 1rem 0.95rem;
+  font-size: 0.85rem;
+}
+
+.reveal .grid-2x2 ul {
+  margin-left: 1rem;
+}
+
+.reveal .grid-2x2.team > div h3,
+.reveal .grid-2x2.questions > div h3 {
+  color: #1d4ed8;
+}
+
+.reveal table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.reveal table th,
+.reveal table td {
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+
+.reveal table th {
+  background: #f1f5f9;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.reveal .risks td:nth-child(2) {
+  font-weight: 600;
+  color: #b91c1c;
+  white-space: nowrap;
+}
+
+.reveal .timeline {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.7rem;
+  text-align: left;
+}
+
+.reveal .phase {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-top: 4px solid #2563eb;
+  border-radius: 0.5rem;
+  padding: 0.7rem 0.8rem 0.85rem;
+  font-size: 0.78rem;
+}
+
+.reveal .phase:nth-child(1) { border-top-color: #94a3b8; }
+.reveal .phase:nth-child(2) { border-top-color: #2563eb; }
+.reveal .phase:nth-child(3) { border-top-color: #7c3aed; }
+.reveal .phase:nth-child(4) { border-top-color: #059669; }
+.reveal .phase:nth-child(5) { border-top-color: #f59e0b; }
+
+.reveal .phase__tag {
+  display: inline-block;
+  background: #1e293b;
+  color: #f1f5f9;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  margin-bottom: 0.45rem;
+}
+
+.reveal .phase h3 {
+  font-size: 0.95rem;
+  margin: 0 0 0.4rem;
+}
+
+.reveal .diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-items: stretch;
+  margin: 0 auto;
+  max-width: 980px;
+}
+
+.reveal .diagram .layer {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: 1fr;
+}
+
+.reveal .diagram .layer.two {
+  grid-template-columns: 1fr 1.4fr;
+}
+
+.reveal .diagram .layer.three {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.reveal .diagram .block {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.45rem;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.82rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+}
+
+.reveal .diagram .block strong {
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.reveal .diagram .block small {
+  color: #475569;
+  font-size: 0.72rem;
+}
+
+.reveal .diagram .block.primary {
+  background: #1e293b;
+  color: #f1f5f9;
+  border-color: #1e293b;
+}
+
+.reveal .diagram .block.primary strong {
+  color: #fbbf24;
+}
+
+.reveal .diagram .block.primary small {
+  color: #cbd5e1;
+}
+
+.reveal .choices td:first-child,
+.reveal .choices th:first-child {
+  width: 10%;
+  font-weight: 600;
+}
+
+.reveal .choices td:nth-child(2),
+.reveal .choices th:nth-child(2) {
+  width: 25%;
+}

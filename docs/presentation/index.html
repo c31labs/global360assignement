@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TaskFlow — Architecture, Delivery, Leadership</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css" id="theme" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <!-- TITLE -->
+        <section data-background-color="#0f172a">
+          <div class="title-slide">
+            <p class="eyebrow">Reference implementation &amp; delivery plan</p>
+            <h1>TaskFlow</h1>
+            <p class="subtitle">A task management platform for a marketing agency</p>
+            <p class="meta">Prepared for Company 31 · Manuel · May 2026</p>
+          </div>
+        </section>
+
+        <!-- AGENDA -->
+        <section>
+          <h2>What we'll cover</h2>
+          <ol class="big">
+            <li>Solution architecture</li>
+            <li>Delivery plan</li>
+            <li>Technical leadership</li>
+          </ol>
+          <p class="footnote">The companion repo is the reference implementation — this deck explains the choices behind it.</p>
+        </section>
+
+        <!-- ASSUMPTIONS -->
+        <section>
+          <h2>Assumptions I'm working from</h2>
+          <ul class="two-col">
+            <li><strong>Scale.</strong> 50–200 users initially (one agency). Steady-state, not spiky.</li>
+            <li><strong>Tenancy.</strong> Single tenant on day 1; design admits multi-tenant later.</li>
+            <li><strong>Region.</strong> UK/EU data residency presumed (marketing data is personal data).</li>
+            <li><strong>Latency.</strong> Sub-300ms p95 for screen loads is enough; this is not a trading app.</li>
+            <li><strong>Realtime.</strong> Not a launch requirement; we'll model commands/events so it bolts on cleanly.</li>
+            <li><strong>Hosting.</strong> Azure preferred (the .NET stack &amp; likely client estate) — agnostic where it costs us little.</li>
+          </ul>
+          <p class="footnote">Slide 3 of the deck — these are inputs, not conclusions. Each becomes a question on day one (see slide 19).</p>
+        </section>
+
+        <!-- ARCHITECTURE — HEADER -->
+        <section data-background-color="#1e293b" data-background-image="">
+          <h1 class="section-title">1 · Solution architecture</h1>
+        </section>
+
+        <!-- ARCHITECTURE DIAGRAM -->
+        <section>
+          <h2>Production architecture, top-down</h2>
+          <div class="diagram" aria-label="Architecture diagram">
+            <div class="layer">
+              <div class="block">Users</div>
+            </div>
+            <div class="layer">
+              <div class="block">Azure Front Door / Cloudflare</div>
+              <div class="block">WAF · TLS termination · DDoS protection</div>
+            </div>
+            <div class="layer two">
+              <div class="block">
+                <strong>Static SPA</strong>
+                <small>Angular bundle on Blob Storage + CDN</small>
+              </div>
+              <div class="block primary">
+                <strong>.NET 8 API</strong>
+                <small>Containerised · Azure Container Apps · 2–10 replicas</small>
+              </div>
+            </div>
+            <div class="layer">
+              <div class="block">Auth: Entra ID / Auth0 (OIDC → JWT)</div>
+            </div>
+            <div class="layer three">
+              <div class="block">
+                <strong>PostgreSQL</strong>
+                <small>Azure DB · daily PITR · read replica</small>
+              </div>
+              <div class="block">
+                <strong>Redis</strong>
+                <small>Sessions · rate limit · cache</small>
+              </div>
+              <div class="block">
+                <strong>Blob storage</strong>
+                <small>Attachments · audit exports</small>
+              </div>
+            </div>
+            <div class="layer">
+              <div class="block">OpenTelemetry → Application Insights / Honeycomb</div>
+              <div class="block">Key Vault · Managed identities</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TECHNOLOGY CHOICES -->
+        <section>
+          <h2>Technology choices &amp; the trade-offs</h2>
+          <table class="choices">
+            <thead>
+              <tr><th>Layer</th><th>Choice</th><th>Why &amp; trade-off</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Frontend</td>
+                <td>Angular 18 (standalone, signals)</td>
+                <td>Batteries included, strict TS by default. Heavier bundle than React — fine at this scale.</td>
+              </tr>
+              <tr>
+                <td>Backend</td>
+                <td>.NET 8 minimal APIs</td>
+                <td>LTS until Nov 2026, fast, mature ecosystem. We can swap to Controllers if the team prefers.</td>
+              </tr>
+              <tr>
+                <td>Database</td>
+                <td>PostgreSQL</td>
+                <td>Open, mature, JSONB if we need flexibility. SQL Server would also work — Postgres is simply cheaper and more portable.</td>
+              </tr>
+              <tr>
+                <td>Auth</td>
+                <td>OIDC + JWT bearer</td>
+                <td>Works with whatever IdP the agency already has. We are not in the auth business.</td>
+              </tr>
+              <tr>
+                <td>Runtime</td>
+                <td>Azure Container Apps</td>
+                <td>Managed scale-to-zero, no Kubernetes ops overhead. Trade: vendor coupling — abstracted behind IaC.</td>
+              </tr>
+              <tr>
+                <td>Observability</td>
+                <td>OpenTelemetry</td>
+                <td>Standardised, swappable backend (App Insights / Honeycomb / Grafana Cloud).</td>
+              </tr>
+              <tr>
+                <td>CI/CD</td>
+                <td>GitHub Actions + Bicep</td>
+                <td>Same repo, same review surface. Bicep over Terraform when we're Azure-only.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- NFRs -->
+        <section>
+          <h2>How the architecture addresses non-functionals</h2>
+          <div class="grid-2x2">
+            <div>
+              <h3>Security</h3>
+              <ul>
+                <li>OIDC → JWT bearer, short-lived tokens, refresh on the gateway.</li>
+                <li>Secrets in Key Vault via managed identity — none in env files.</li>
+                <li>WAF in front, dependabot + Snyk on PRs, OWASP-aware code review checklist.</li>
+                <li>Tenant scoping enforced at the repository layer.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Scalability</h3>
+              <ul>
+                <li>Stateless API → horizontal scale on CPU/RPS metrics.</li>
+                <li>Database read replica for reporting workloads.</li>
+                <li>Redis for hot reads (board view, user lookups).</li>
+                <li>Cursor pagination on list endpoints from day one.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Reliability</h3>
+              <ul>
+                <li>Health probes (liveness vs readiness).</li>
+                <li>Blue/green deploys with automated rollback on SLO burn.</li>
+                <li>Database PITR + nightly logical backups off-region.</li>
+                <li>Retries with jitter on outbound calls; circuit breaker on third parties.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Observability</h3>
+              <ul>
+                <li>Structured logs (Serilog) with traceId on every request.</li>
+                <li>OpenTelemetry traces from browser → API → DB.</li>
+                <li>RED metrics + SLOs (latency, error rate, throughput) per endpoint.</li>
+                <li>Alert on burn rate, not threshold spikes.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- DELIVERY — HEADER -->
+        <section data-background-color="#1e293b">
+          <h1 class="section-title">2 · Delivery plan</h1>
+        </section>
+
+        <!-- ROADMAP -->
+        <section>
+          <h2>Phased roadmap: prototype → launch</h2>
+          <div class="timeline">
+            <div class="phase">
+              <span class="phase__tag">Now</span>
+              <h3>Phase 0 — Foundation</h3>
+              <ul>
+                <li>Reference repo, ADRs, environments wired</li>
+                <li>Discovery workshops (users, integrations, compliance)</li>
+                <li>Auth provider &amp; hosting confirmed</li>
+              </ul>
+            </div>
+            <div class="phase">
+              <span class="phase__tag">Wk 1–3</span>
+              <h3>Phase 1 — MVP</h3>
+              <ul>
+                <li>Auth, multi-user, tasks, assignment, due dates</li>
+                <li>CI/CD, staging, structured logs, traces</li>
+                <li>Manual UAT with 3 client users</li>
+              </ul>
+            </div>
+            <div class="phase">
+              <span class="phase__tag">Wk 4–6</span>
+              <h3>Phase 2 — Beta</h3>
+              <ul>
+                <li>Comments, notifications, attachments</li>
+                <li>Real-time updates (SignalR)</li>
+                <li>Performance pass, accessibility audit</li>
+              </ul>
+            </div>
+            <div class="phase">
+              <span class="phase__tag">Wk 7–9</span>
+              <h3>Phase 3 — Launch</h3>
+              <ul>
+                <li>Security review, pen test remediation</li>
+                <li>SLOs + alerting in place, runbooks written</li>
+                <li>Phased rollout (10% → 50% → 100%)</li>
+              </ul>
+            </div>
+            <div class="phase">
+              <span class="phase__tag">Wk 10+</span>
+              <h3>Phase 4 — Iterate</h3>
+              <ul>
+                <li>Feedback-driven backlog</li>
+                <li>Tech-debt budget (10–15% per sprint)</li>
+                <li>Quarterly architecture review</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- TEAM -->
+        <section>
+          <h2>Team composition</h2>
+          <div class="grid-2x2 team">
+            <div>
+              <h3>Core, full-time</h3>
+              <ul>
+                <li><strong>Tech lead</strong> — me. Code, architecture, stakeholder management.</li>
+                <li><strong>2× full-stack engineers</strong> (mid/senior). Vertical-slice delivery.</li>
+                <li><strong>Senior frontend / UX-leaning engineer.</strong> Pattern library, accessibility, performance.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Shared, part-time</h3>
+              <ul>
+                <li><strong>DevOps / platform</strong> (~50%) — IaC, pipelines, on-call setup.</li>
+                <li><strong>Designer</strong> (~25%) — flows, design tokens, accessibility review.</li>
+                <li><strong>QA</strong> (~50% from Phase 2) — exploratory + test automation tooling.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Client-side</h3>
+              <ul>
+                <li><strong>Product owner</strong> with real authority on scope/priority.</li>
+                <li>2–3 <strong>pilot users</strong> for weekly demos and UAT.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Why this shape</h3>
+              <ul>
+                <li>Small enough to fit one stand-up; big enough for sustained pace.</li>
+                <li>Seniority spread enables mentorship without bottlenecks.</li>
+                <li>Specialists arrive when their work is the bottleneck — not before.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- RISKS -->
+        <section>
+          <h2>Top risks &amp; how we'll mitigate them</h2>
+          <table class="risks">
+            <thead><tr><th>Risk</th><th>Likelihood / impact</th><th>Mitigation</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Scope creep — "just one more"</td>
+                <td>High / Medium</td>
+                <td>Strict MVP definition, change-control via PO, weekly demos surface trade-offs early.</td>
+              </tr>
+              <tr>
+                <td>Auth provider undecided by client</td>
+                <td>Medium / High</td>
+                <td>OIDC abstraction means we can swap; day-1 question. Default to Entra ID if undecided in week 1.</td>
+              </tr>
+              <tr>
+                <td>Data migration from current ad-hoc workflows</td>
+                <td>Medium / High</td>
+                <td>Discovery workshop in week 1; if non-trivial, build an importer as Phase 2, not as a launch blocker.</td>
+              </tr>
+              <tr>
+                <td>Hidden compliance requirement (GDPR, ICO)</td>
+                <td>Low / High</td>
+                <td>Privacy review with legal in week 1; design data model with PII flags and export/delete from day one.</td>
+              </tr>
+              <tr>
+                <td>Realtime becomes a launch must-have</td>
+                <td>Medium / Medium</td>
+                <td>API designed around commands &amp; queries; SignalR layers on without changing the data model.</td>
+              </tr>
+              <tr>
+                <td>Key person dependency</td>
+                <td>Medium / High</td>
+                <td>Pair programming, rotating PR reviewers, ADRs in repo, runbooks in repo.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- TRACKING -->
+        <section>
+          <h2>How I'll surface delivery issues early</h2>
+          <div class="grid-2x2">
+            <div>
+              <h3>Cadence</h3>
+              <ul>
+                <li>2-week sprints, demo to PO + pilot users on Friday.</li>
+                <li>Daily 15-minute stand-up — risks/blockers first, status second.</li>
+                <li>Weekly written status to client: RAG, top 3 risks, asks.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Engineering metrics</h3>
+              <ul>
+                <li>DORA: lead time, deploy frequency, MTTR, change-failure rate.</li>
+                <li>PR cycle time &amp; review latency — visible on a dashboard.</li>
+                <li>Flaky-test budget enforced (no green-on-retry merges).</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Product signals</h3>
+              <ul>
+                <li>Burn-up of MVP scope vs target launch.</li>
+                <li>Weekly tag-up with pilot users for qualitative feedback.</li>
+                <li>Post-deploy error-rate &amp; latency dashboards reviewed each Monday.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Surfacing problems</h3>
+              <ul>
+                <li>RAG status is honest, not optimistic — "amber" early beats "red" late.</li>
+                <li>If a sprint slips, the deliverable changes, not the date — and we say so.</li>
+                <li>Blameless post-mortems for incidents &gt; 30 min — written, shared, no individual named.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- LEADERSHIP — HEADER -->
+        <section data-background-color="#1e293b">
+          <h1 class="section-title">3 · Technical leadership</h1>
+        </section>
+
+        <!-- WAYS OF WORKING -->
+        <section>
+          <h2>Setting the team up for success</h2>
+          <div class="grid-2x2">
+            <div>
+              <h3>Ways of working</h3>
+              <ul>
+                <li>Trunk-based dev, short-lived branches, daily merges.</li>
+                <li>Pair on anything risky or new; mob occasionally for shared learning.</li>
+                <li>Tech-debt time blocked weekly — not optional.</li>
+                <li>Decisions documented as ADRs in repo, not in chat history.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Technical standards</h3>
+              <ul>
+                <li>Strict TypeScript, nullable reference types, warnings-as-errors.</li>
+                <li>OpenAPI is the API contract; client types generated from it.</li>
+                <li>Every new endpoint ships with at least one integration test.</li>
+                <li>Logs are structured; no <code>Console.WriteLine</code>.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Code review</h3>
+              <ul>
+                <li>1 approver for low-risk; 2 for prod paths, schema changes, or auth.</li>
+                <li>Author writes the PR description; reviewer reads it before the diff.</li>
+                <li>Reviews are timely (target: 4 working hours) — slow review kills flow.</li>
+                <li>Comments separate <em>blocking</em>, <em>nit</em>, and <em>question</em>.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Definition of Done</h3>
+              <ul>
+                <li>Tests written and passing locally and in CI.</li>
+                <li>Deployed to staging; observable in logs/traces.</li>
+                <li>Accessible (WCAG 2.1 AA spot-check) and documented if user-facing.</li>
+                <li>Feature flag in place if rollback isn't trivial.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- HANDLING PO PRESSURE -->
+        <section>
+          <h2>"The PO wants this feature now — but it's risky"</h2>
+          <ol class="big">
+            <li><strong>Acknowledge the goal.</strong> The feature exists because of a real outcome the PO needs. Start there, not at "no."</li>
+            <li><strong>Make the risk concrete.</strong> What breaks? Who's affected? What's the blast radius if it goes wrong? Numbers, not adjectives.</li>
+            <li><strong>Offer options, not roadblocks.</strong> A smaller-scoped version. A time-boxed spike. A flag-protected rollout. Always two paths.</li>
+            <li><strong>Quantify the cost of "fast" vs "safe."</strong> Days, not feelings. The PO can choose with eyes open.</li>
+            <li><strong>If they still push:</strong> write the decision and risks as an ADR, get explicit sign-off, ship it behind a kill-switch with heightened monitoring.</li>
+            <li><strong>Never:</strong> say "no" as the engineer alone, or "yes" without the trade-off visible to whoever owns the budget.</li>
+          </ol>
+        </section>
+
+        <!-- DAY 1 QUESTIONS -->
+        <section>
+          <h2>What I'd ask on day one</h2>
+          <div class="grid-2x2 questions">
+            <div>
+              <h3>About the users</h3>
+              <ul>
+                <li>Who actually uses this — roles, team sizes, technical comfort?</li>
+                <li>What does a busy day look like for them today?</li>
+                <li>Which of the chaos (email/calls/meetings) do they actually want to replace, vs supplement?</li>
+              </ul>
+            </div>
+            <div>
+              <h3>About the data</h3>
+              <ul>
+                <li>Where does work live today? Spreadsheets, inboxes, project tools?</li>
+                <li>Does anything need importing on day one — or do we start fresh?</li>
+                <li>Are clients (the agency's clients) ever exposed to this app?</li>
+              </ul>
+            </div>
+            <div>
+              <h3>About hosting &amp; identity</h3>
+              <ul>
+                <li>Existing cloud provider &amp; identity (Entra, Google Workspace, Okta)?</li>
+                <li>UK/EU data residency required? PII categories present?</li>
+                <li>Any existing security or platform standards I should inherit?</li>
+              </ul>
+            </div>
+            <div>
+              <h3>About launch &amp; success</h3>
+              <ul>
+                <li>What does v1 success look like — measurable?</li>
+                <li>Who decides scope when there's pressure to add more?</li>
+                <li>What's the budget for ongoing operation post-launch?</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- ANSWERING THE QUESTIONS -->
+        <section>
+          <h2>How I'd answer them in the first two weeks</h2>
+          <ul class="big">
+            <li><strong>Week 1 — workshops.</strong> 90-minute sessions with each user role; observe a typical day on-site or shadow-call if remote.</li>
+            <li><strong>Week 1 — written discovery.</strong> Existing docs, policies, integration touch-points; security/IT alignment meeting.</li>
+            <li><strong>Week 2 — wireframes.</strong> Low-fi mockups validated with pilot users before any further code beyond the prototype.</li>
+            <li><strong>Week 2 — ADRs published.</strong> Auth provider, hosting region, data model approach — all written down and signed off.</li>
+            <li><strong>Continuous — assumption log.</strong> Anything we couldn't answer is logged with a target date for resolution.</li>
+          </ul>
+        </section>
+
+        <!-- BRIEF / PROTOTYPE CONCERNS -->
+        <section>
+          <h2>Concerns I'd raise about the brief &amp; prototype</h2>
+          <ul class="big">
+            <li><strong>"Production-ready" is undefined.</strong> Need explicit acceptance criteria — uptime, security, accessibility, observability targets.</li>
+            <li><strong>No identity model in the prototype.</strong> Single-user code paths look simple; real auth + tenant scoping reshape almost every endpoint. We'd front-load this.</li>
+            <li><strong>No clear constraint on hosting or compliance.</strong> Marketing data is personal data — GDPR is in scope by default.</li>
+            <li><strong>The chaos to replace is bigger than tasks.</strong> Email/calls/meetings imply notifications, mentions, summaries — clarify what's in v1 vs Phase 2.</li>
+            <li><strong>"Coordinate" is a multi-app workflow.</strong> Slack/Teams integration may be unavoidable — worth confirming in week 1.</li>
+          </ul>
+        </section>
+
+        <!-- CLOSE -->
+        <section data-background-color="#0f172a">
+          <div class="title-slide">
+            <p class="eyebrow">In summary</p>
+            <h1>Production-ready isn't a checkbox.</h1>
+            <p class="subtitle">It's a small team shipping every week, behind feature flags, with the trade-offs written down where everyone can see them.</p>
+            <p class="meta">Companion repo · <a href="https://github.com/c31labs/global360assignement">c31labs/global360assignement</a></p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+    <script>
+      Reveal.initialize({
+        hash: true,
+        slideNumber: 'c/t',
+        transition: 'fade',
+        controlsTutorial: false,
+        width: 1280,
+        height: 800,
+      });
+    </script>
+  </body>
+</html>

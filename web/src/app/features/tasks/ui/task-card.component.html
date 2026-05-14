@@ -1,0 +1,62 @@
+<article
+  class="task-card"
+  [class.task-card--busy]="busy"
+  [attr.data-priority]="task.priority.toLowerCase()"
+  [attr.data-status]="task.status.toLowerCase()">
+  <header class="task-card__header">
+    <h3 class="task-card__title">{{ task.title }}</h3>
+    <span class="badge badge--priority">{{ priorityLabel[task.priority] }}</span>
+  </header>
+
+  @if (task.description) {
+    <p class="task-card__description">{{ task.description }}</p>
+  }
+
+  <dl class="task-card__meta">
+    @if (task.assignee) {
+      <div>
+        <dt>Assignee</dt>
+        <dd>{{ task.assignee }}</dd>
+      </div>
+    }
+    @if (task.dueDate) {
+      <div>
+        <dt>Due</dt>
+        <dd>{{ task.dueDate | date: 'mediumDate' }}</dd>
+      </div>
+    }
+  </dl>
+
+  <footer class="task-card__footer">
+    <label class="status-select">
+      <span class="visually-hidden">Status for {{ task.title }}</span>
+      <select
+        [value]="task.status"
+        [disabled]="busy"
+        (change)="onStatusChange($any($event.target).value)">
+        @for (status of statuses; track status) {
+          <option [value]="status">{{ statusLabel[status] }}</option>
+        }
+      </select>
+    </label>
+
+    <div class="task-card__actions">
+      <button
+        type="button"
+        class="ghost"
+        [disabled]="busy"
+        (click)="edit.emit(task)"
+        [attr.aria-label]="'Edit ' + task.title">
+        Edit
+      </button>
+      <button
+        type="button"
+        class="ghost danger"
+        [disabled]="busy"
+        (click)="remove.emit(task)"
+        [attr.aria-label]="'Delete ' + task.title">
+        Delete
+      </button>
+    </div>
+  </footer>
+</article>

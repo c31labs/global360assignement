@@ -1,0 +1,64 @@
+<form class="task-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <header class="task-form__header">
+    <h2>{{ isEditing ? 'Edit task' : 'New task' }}</h2>
+    @if (isEditing) {
+      <button type="button" class="link" (click)="cancel.emit()">Cancel</button>
+    }
+  </header>
+
+  <label class="field">
+    <span class="field__label">Title <abbr title="required">*</abbr></span>
+    <input
+      type="text"
+      formControlName="title"
+      maxlength="200"
+      autocomplete="off"
+      data-testid="task-title-input" />
+    @if (form.controls.title.touched && form.controls.title.errors?.['required']) {
+      <small class="field__error">A title is required.</small>
+    }
+    @if (form.controls.title.errors?.['maxlength']) {
+      <small class="field__error">Keep the title to 200 characters or fewer.</small>
+    }
+  </label>
+
+  <label class="field">
+    <span class="field__label">Description</span>
+    <textarea
+      formControlName="description"
+      rows="3"
+      maxlength="2000"
+      placeholder="Optional context the team needs to deliver this"></textarea>
+  </label>
+
+  <div class="row">
+    <label class="field">
+      <span class="field__label">Priority</span>
+      <select formControlName="priority">
+        @for (priority of priorities; track priority) {
+          <option [value]="priority">{{ priorityLabel[priority] }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="field">
+      <span class="field__label">Due date</span>
+      <input type="date" formControlName="dueDate" [min]="minDueDate" />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Assignee</span>
+      <input type="text" formControlName="assignee" maxlength="120" placeholder="e.g. Alex" />
+    </label>
+  </div>
+
+  <div class="task-form__actions">
+    <button
+      type="submit"
+      class="primary"
+      [disabled]="submitting || form.invalid"
+      data-testid="task-submit">
+      {{ submitting ? 'Saving...' : isEditing ? 'Save changes' : 'Add task' }}
+    </button>
+  </div>
+</form>
